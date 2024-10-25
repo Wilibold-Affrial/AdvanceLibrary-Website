@@ -7,68 +7,60 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="header">
-        <div class="user-info">
-            Welcome, Admin
-            <button onclick="logout()" class="logout-btn">Logout</button>
-        </div>
-    </div>
-    <div id="toast"></div>
     <div class="container">
-        <h1>Library Management System</h1>
-        <div id="menu-container">
-            <div id="menu">
-                <button onclick="showForm('addBook')">Add Book</button>
-                <button onclick="showForm('borrowBook')">Borrow Book</button>
-                <button onclick="showForm('reserveBook')">Reserve Book</button>
-                <button onclick="showForm('returnBook')">Return Book</button>
-                <button onclick="processReservation()">Process Reservation</button>
+        <!-- Login Form -->
+        <div id="loginForm" class="login-container">
+            <h2>Library System Login</h2>
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" required>
             </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" required>
+            </div>
+            <button onclick="login()">Login</button>
         </div>
-        <div id="forms">
-            <div id="addBookForm" class="form-group">
-                <h3>Add New Book</h3>
-                <label for="bookTitle">Book Title:</label>
-                <input type="text" id="bookTitle" required>
-                <label for="bookAuthor">Book Author:</label>
-                <input type="text" id="bookAuthor" required>
+
+        <!-- Main Content -->
+        <div id="mainContent" class="hidden">
+            <div class="header">
+                <h1>Library Management System</h1>
+                <div>
+                    <span id="userInfo"></span>
+                    <button onclick="logout()">Logout</button>
+                </div>
+            </div>
+
+            <div id="alertBox" class="alert hidden"></div>
+
+            <!-- Admin Controls -->
+            <div id="adminControls" class="admin-controls hidden">
+                <h2>Add New Book</h2>
+                <div class="form-group">
+                    <label for="bookTitle">Title:</label>
+                    <input type="text" id="bookTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="bookAuthor">Author:</label>
+                    <input type="text" id="bookAuthor" required>
+                </div>
                 <button onclick="addBook()">Add Book</button>
             </div>
-            <div id="borrowBookForm" class="form-group">
-                <h3>Borrow a Book</h3>
-                <label for="borrowId">Book ID:</label>
-                <input type="number" id="borrowId" required>
-                <button onclick="borrowBook()">Borrow Book</button>
-            </div>
-            <div id="reserveBookForm" class="form-group">
-                <h3>Reserve a Book</h3>
-                <label for="reserveId">Book ID:</label>
-                <input type="number" id="reserveId" required>
-                <label for="memberName">Your Name:</label>
-                <input type="text" id="memberName" required>
-                <button onclick="reserveBook()">Reserve Book</button>
-            </div>
-            <div id="returnBookForm" class="form-group">
-                <h3>Return a Book</h3>
-                <label for="returnId">Book ID:</label>
-                <input type="number" id="returnId" required>
-                <button onclick="returnBook()">Return Book</button>
-            </div>
-        </div>
-        
-        <div id="bookList">
-            <h2>Book Inventory</h2>
+
+            <!-- Books Table -->
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Title</th>
                         <th>Author</th>
                         <th>Status</th>
+                        <th>Borrowed By</th>
+                        <th>Reserved By</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="bookListBody">
-                </tbody>
+                <tbody id="booksTableBody"></tbody>
             </table>
         </div>
     </div>

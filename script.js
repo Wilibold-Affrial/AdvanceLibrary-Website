@@ -1,324 +1,189 @@
-// Book class
-class Book {
-    constructor(id, title, author) {
-        this.id = id;
-        this.title = title;
-        this.author = author;
-        this.isAvailable = true; //to check if the book is available to borrow
-    }
+// Initial Data
+const initialBooks = [
+    { id: 1, title: "The Great Gatsby", author: "F. Scott Fitzgerald", status: "available", borrowedBy: null, reservedBy: null },
+    { id: 2, title: "1984", author: "George Orwell", status: "available", borrowedBy: null, reservedBy: null }
+];
+
+const users = [
+    { username: "admin", password: "admin123", role: "admin" },
+    { username: "user1", password: "user123", role: "customer" }
+];
+
+// State management
+let currentUser = null;
+let books = JSON.parse(localStorage.getItem('books')) || initialBooks;
+
+// Save books to localStorage
+function saveBooks() {
+    localStorage.setItem('books', JSON.stringify(books));
 }
 
-// BST Node class, represents a node in the Binary Search Tree
-class BSTNode {
-    constructor(book) {
-        this.book = book;
-        this.left = null; //Left child
-        this.right = null; //Right child
-    }
-}
-
-// Queue Node class, represents a node in the queue for reservation 
-class QNode {
-    constructor(bookId, memberName) {
-        this.bookId = bookId;
-        this.memberName = memberName;
-        this.next = null;
-    }
-}
-
-// Library Management System
-class LibraryManagementSystem {
-    constructor() {
-        this.root = null; //root of BST
-        this.reservations = { front: null, rear: null };
-        this.bookId = 1; //Auto Increament ID for books
-        this.loadExistingData();
-    }
-
-    loadExistingData() {
-        const libraryData = sessionStorage.getItem('libraryData');
-        if (libraryData) {
-            const parsedData = JSON.parse(libraryData);
-            if (parsedData.books && parsedData.books.length > 0) {
-                parsedData.books.forEach(book => {
-                    if (book.id >= this.bookId) {
-                        this.bookId = book.id + 1;
-                    }
-                    const newBook = new Book(book.id, book.title, book.author);
-                    newBook.isAvailable = book.isAvailable;
-                    this.root = this._insertRec(this.root, newBook);
-                });
-            }
-            this.reservations = parsedData.reservations;
-        }
-    }
-
-    saveToStorage() {
-        const books = this.displayAllBooks();
-        sessionStorage.setItem('libraryData', JSON.stringify({
-            books: books,
-            reservations: this.reservations
-        }));
-    }
-
-    //Method to add new book to the BST
-    addBook(title, author) {
-        const book = new Book(this.bookId++, title, author);
-        this.root = this._insertRec(this.root, book);
-        this.updateBookList();
-        this.saveToStorage(); // Add this line
-        return book;
-    }
-
-
-    //Recursive helper method to insert a book into BST
-    _insertRec(node, book) {
-        if (node === null) {
-            return new BSTNode(book);
-        }
-        //Traverse left or right base on the book ID
-        if (book.id < node.book.id) {
-            node.left = this._insertRec(node.left, book);
-        } else if (book.id > node.book.id) {
-            node.right = this._insertRec(node.right, book);
-        }
-        return node;
-    }
-
-    //Method to search for book in the BST by ID
-    searchBook(id) {
-        return this._searchRec(this.root, id);
-    }
-
-    //Recursive helper method to search for a book in the BST
-    _searchRec(node, id) {
-        if (node === null || node.book.id === id) {
-            return node ? node.book : null;
-        }
-        //Travese left or right based on the book ID
-        if (id < node.book.id) {
-            return this._searchRec(node.left, id);
-        }
-        return this._searchRec(node.right, id);
-    }
-
-    //Method to reserve a book
-    reserveBook(bookId, memberName) {
-        const book = this.searchBook(bookId);
-        if (book && !book.isAvailable) {
-            this._enqueue(bookId, memberName);
-            this.saveToStorage(); // Add this line
-            return `Book reserved for ${memberName}`;
-        } else if (book && book.isAvailable) {
-            return "Book is available, no need to reserve";
-        } else {
-            return "Book not found!";
-        }
-    }
-
-    //Method to add a reservation to the queue
-    _enqueue(bookId, memberName) {
-        const newNode = new QNode(bookId, memberName);
-        if (this.reservations.rear === null) {
-            this.reservations.front = this.reservations.rear = newNode;
-        } else {
-            this.reservations.rear.next = newNode;
-            this.reservations.rear = newNode;
-        }
-    }
-
-    //Method to process the next reservation in the queue
-    processNextReservation() {
-        if (this.reservations.front === null) {
-            return "No reservations in queue";
-        }
-        const reservation = this.reservations.front;
-        this.reservations.front = this.reservations.front.next;
-        if (this.reservations.front === null) {
-            this.reservations.rear = null;
-        }
-        const book = this.searchBook(reservation.bookId);
-        if (book && !book.isAvailable) {
-            book.isAvailable = true;
-            this.updateBookList();
-            this.saveToStorage(); // Add this line
-            return `Reservation processed for ${reservation.memberName} - Book: ${book.title}`;
-        }
-        return "Error processing reservation";
-    }
-    //Method to borrow a book
-    borrowBook(id) {
-        const book = this.searchBook(id);
-        if (book && book.isAvailable) {
-            book.isAvailable = false;
-            this.updateBookList();
-            this.saveToStorage(); // Add this line
-            return `Book borrowed successfully: ${book.title}`;
-        } else if (book) {
-            return `Book is not available: ${book.title}`;
-        } else {
-            return "Book not found";
-        }
-    }
-
-    //Method to return a book
-    returnBook(id) {
-        const book = this.searchBook(id);
-        if (book && !book.isAvailable) {
-            book.isAvailable = true;
-            this.updateBookList();
-            this.saveToStorage(); // Add this line
-            return `Book returned successfully: ${book.title}`;
-        } else if (book) {
-            return `Book was already in library: ${book.title}`;
-        } else {
-            return "Book not found";
-        }
-    }
-
-
-    //Method to display all books in the BST (in-order traversal)
-    displayAllBooks() {
-        const books = [];
-        this._inorderTraversal(this.root, books);
-        return books;
-    }
-
-    //Recursive helper methor for in-order traversal of BST
-    _inorderTraversal(node, books) {
-        if (node !== null) {
-            this._inorderTraversal(node.left, books);
-            books.push(node.book);
-            this._inorderTraversal(node.right, books);
-        }
-    }
-
-    //Method to check if the BST is empty
-    isEmpty() {
-        return this.root === null;
-    }
-
-    //Method to update the book list in the UI
-    updateBookList() {
-        const books = this.displayAllBooks();
-        const bookListBody = document.getElementById('bookListBody');
-        bookListBody.innerHTML = '';
-        books.forEach(book => {
-            const row = bookListBody.insertRow();
-            row.insertCell(0).textContent = book.id;
-            row.insertCell(1).textContent = book.title;
-            row.insertCell(2).textContent = book.author;
-            const statusCell = row.insertCell(3);
-            updateStatusColor(statusCell, book.isAvailable ? 'Available' : 'Borrowed');
-        });
-    }
-}
-
-// Helper function to display output
-function displayOutput(message) {
-    const toast = document.getElementById("toast");
-    toast.innerHTML = message;
-    toast.className = "show";
-    setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
-}
-
-// Method to show the selected form and hide others
-function showForm(formId) {
-    const forms = document.querySelectorAll('.form-group');
-    forms.forEach(form => {
-        form.style.display = 'none';
-        form.style.opacity = '0';
-    });
-    const selectedForm = document.getElementById(formId + 'Form');
-    selectedForm.style.display = 'block';
+// Show alert message
+function showAlert(message, type) {
+    const alertBox = document.getElementById('alertBox');
+    alertBox.textContent = message;
+    alertBox.className = `alert alert-${type}`;
     setTimeout(() => {
-        selectedForm.style.opacity = '1';
-    }, 10);
+        alertBox.className = 'alert hidden';
+    }, 3000);
 }
 
-// Method to add a book
+// Login function
+function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    if (!username || !password) {
+        showAlert('Please fill in all fields!', 'error');
+        return;
+    }
+
+    const user = users.find(u => u.username === username && u.password === password);
+
+    if (user) {
+        currentUser = user;
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+        document.getElementById('userInfo').textContent = `Welcome, ${user.username}`;
+        
+        if (user.role === 'admin') {
+            document.getElementById('adminControls').classList.remove('hidden');
+        }
+
+        updateBooksTable();
+        showAlert('Login successful!', 'success');
+    } else {
+        showAlert('Invalid credentials!', 'error');
+    }
+}
+
+// Logout function
+function logout() {
+    currentUser = null;
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('mainContent').classList.add('hidden');
+    document.getElementById('adminControls').classList.add('hidden');
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+}
+
+// Add book function
 function addBook() {
     const title = document.getElementById('bookTitle').value;
     const author = document.getElementById('bookAuthor').value;
-    if (title && author) {
-        const book = library.addBook(title, author);
-        displayOutput(`Successfully added book '${book.title}' by ${book.author}`);
-        document.getElementById('bookTitle').value = '';
-        document.getElementById('bookAuthor').value = '';
-    } else {
-        displayOutput("Invalid input. Book not added.");
+
+    if (!title || !author) {
+        showAlert('Please fill in all fields!', 'error');
+        return;
+    }
+
+    const newBook = {
+        id: books.length > 0 ? Math.max(...books.map(b => b.id)) + 1 : 1,
+        title,
+        author,
+        status: 'available',
+        borrowedBy: null,
+        reservedBy: null
+    };
+
+    books.push(newBook);
+    saveBooks();
+    updateBooksTable();
+    
+    document.getElementById('bookTitle').value = '';
+    document.getElementById('bookAuthor').value = '';
+    showAlert('Book added successfully!', 'success');
+}
+
+// Remove book function
+function removeBook(id) {
+    if (confirm('Are you sure you want to remove this book?')) {
+        books = books.filter(book => book.id !== id);
+        saveBooks();
+        updateBooksTable();
+        showAlert('Book removed successfully!', 'success');
     }
 }
 
-// Method to borrow a book
-function borrowBook() {
-    const id = parseInt(document.getElementById('borrowId').value);
-    if (!isNaN(id)) {
-        const result = library.borrowBook(id);
-        displayOutput(result);
-        document.getElementById('borrowId').value = '';
+// Borrow book function
+function borrowBook(id) {
+    const book = books.find(b => b.id === id);
+    if (book && book.status === 'available') {
+        book.status = 'borrowed';
+        book.borrowedBy = currentUser.username;
+        saveBooks();
+        updateBooksTable();
+        showAlert('Book borrowed successfully!', 'success');
     } else {
-        displayOutput("Invalid input. Please enter a valid book ID.");
+        showAlert('Book is not available for borrowing!', 'error');
     }
 }
 
-// Method to reserve a book
-function reserveBook() {
-    if (library.isEmpty()) {
-        displayOutput("The library is empty. No books available for reservation.");
+// Return book function
+function returnBook(id) {
+    const book = books.find(b => b.id === id);
+    if (book && book.borrowedBy === currentUser.username) {
+        book.status = 'available';
+        book.borrowedBy = null;
+        book.reservedBy = null;
+        saveBooks();
+        updateBooksTable();
+        showAlert('Book returned successfully!', 'success');
     } else {
-        const id = parseInt(document.getElementById('reserveId').value);
-        const name = document.getElementById('memberName').value;
-        if (!isNaN(id) && name) {
-            const result = library.reserveBook(id, name);
-            displayOutput(result);
-            document.getElementById('reserveId').value = '';
-            document.getElementById('memberName').value = '';
-        } else {
-            displayOutput("Invalid input. Please enter a valid book ID and name.");
-        }
+        showAlert('You cannot return this book!', 'error');
     }
 }
 
-// Method to return a book
-function returnBook() {
-    if (library.isEmpty()) {
-        displayOutput("The library is empty. No books available for return.");
+// Reserve book function
+function reserveBook(id) {
+    const book = books.find(b => b.id === id);
+    if (book && book.status === 'borrowed' && !book.reservedBy) {
+        book.reservedBy = currentUser.username;
+        saveBooks();
+        updateBooksTable();
+        showAlert('Book reserved successfully!', 'success');
     } else {
-        const id = parseInt(document.getElementById('returnId').value);
-        if (!isNaN(id)) {
-            const result = library.returnBook(id);
-            displayOutput(result);
-        } else {
-            displayOutput("Invalid input. Please enter a valid book ID.");
-        }
+        showAlert('Book cannot be reserved!', 'error');
     }
 }
 
-// Method to process reservation
-function processReservation() {
-    const result = library.processNextReservation();
-    displayOutput(result);
+// Update books table
+function updateBooksTable() {
+    const tableBody = document.getElementById('booksTableBody');
+    tableBody.innerHTML = '';
+
+    books.forEach(book => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${book.title}</td>
+            <td>${book.author}</td>
+            <td>${book.status}</td>
+            <td>${book.borrowedBy || '-'}</td>
+            <td>${book.reservedBy || '-'}</td>
+            <td>
+                ${book.status === 'available' ? 
+                    `<button onclick="borrowBook(${book.id})">Borrow</button>` : ''}
+                ${book.status === 'borrowed' && !book.reservedBy && book.borrowedBy !== currentUser.username ?
+                    `<button onclick="reserveBook(${book.id})">Reserve</button>` : ''}
+                ${book.borrowedBy === currentUser.username ?
+                    `<button onclick="returnBook(${book.id})">Return</button>` : ''}
+                ${currentUser?.role === 'admin' ?
+                    `<button class="delete" onclick="removeBook(${book.id})">Remove</button>` : ''}
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
 }
 
-// Method to update status cell color
-function updateStatusColor(cell, status) {
-    cell.textContent = status;
-    cell.style.color = status === 'Available' ? '#27ae60' : '#c0392b';
-    cell.style.fontWeight = 'bold';
-}
+// Event Listeners for Enter key
+document.getElementById('username').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('password').focus();
+    }
+});
 
-// Initialize the library and update book list
-const library = new LibraryManagementSystem();
-library.updateBookList();
-
-//Logout function
-function logout() {
-    sessionStorage.removeItem('currentUser');
-    window.location.href = 'login.html';
-}
-
-const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
-if (!currentUser || !currentUser.isAdmin) {
-    window.location.href = 'login.html';
-}
+document.getElementById('password').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        login();
+    }
+});
